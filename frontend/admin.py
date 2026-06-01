@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import os
 
-API_URL = os.getenv("API_URL", "http://localhost:8000/api")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api")
 
 def show():
     user = st.session_state.get("user", {})

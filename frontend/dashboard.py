@@ -3,7 +3,7 @@ import requests
 import os
 from datetime import datetime
 
-API_URL = os.getenv("API_URL", "http://localhost:8000/api")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api")
 
 def show():
     user = st.session_state.get("user", {})
