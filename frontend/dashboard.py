@@ -5,131 +5,12 @@ from datetime import datetime
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api")
 
+def _headers():
+    token = st.session_state.get("token", "")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
 def show():
     user = st.session_state.get("user", {})
-
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    * { font-family: 'Inter', sans-serif !important; }
-
-    .stApp { background: #f5f6fa; min-height: 100vh; }
-    #MainMenu, footer, header, .stDeployButton { visibility: hidden; }
-
-    .block-container { padding: 2rem 2.5rem !important; max-width: 1100px !important; }
-
-    .welcome-card {
-        background: linear-gradient(135deg, #3f51b5, #5c6bc0);
-        border-radius: 20px;
-        padding: 2rem 2.5rem;
-        color: white;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .welcome-card h2 {
-        font-size: 1.6rem !important;
-        font-weight: 700 !important;
-        margin: 0 !important;
-        color: white !important;
-    }
-
-    .welcome-card p {
-        color: rgba(255,255,255,0.8) !important;
-        margin: 0.25rem 0 0 0 !important;
-        font-size: 0.95rem !important;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.25rem 1.5rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        text-align: center;
-        border-left: 4px solid #3f51b5;
-    }
-
-    .stat-card .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #3f51b5;
-    }
-
-    .stat-card .stat-label {
-        font-size: 0.8rem;
-        color: #757575;
-        margin-top: 0.25rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .section-title {
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        color: #212121 !important;
-        margin: 1.5rem 0 0.75rem 0 !important;
-    }
-
-    .chat-card {
-        background: white;
-        border-radius: 14px;
-        padding: 1rem 1.25rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 0.75rem;
-        border-left: 3px solid #e8eaf6;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .chat-card:hover {
-        border-left-color: #3f51b5;
-        box-shadow: 0 4px 16px rgba(63,81,181,0.1);
-    }
-
-    .chat-card .chat-title {
-        font-weight: 600;
-        color: #212121;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .chat-card .chat-date {
-        font-size: 0.75rem;
-        color: #9e9e9e;
-        margin-top: 0.2rem;
-    }
-
-    .stButton > button {
-        background: linear-gradient(135deg, #3f51b5, #5c6bc0) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 0.65rem 1rem !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        width: 100% !important;
-        box-shadow: 0 4px 15px rgba(63,81,181,0.25) !important;
-        transition: all 0.2s !important;
-    }
-
-    .stButton > button:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 20px rgba(63,81,181,0.35) !important;
-    }
-
-    .logout-btn > button {
-        background: white !important;
-        color: #f44336 !important;
-        border: 1.5px solid #f44336 !important;
-        box-shadow: none !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     # Welcome card
     hour = datetime.now().hour
@@ -147,7 +28,7 @@ def show():
 
     # Stats
     try:
-        stats = requests.get(f"{API_URL}/stats").json()
+        stats = requests.get(f"{API_URL}/stats", headers=_headers()).json()
     except:
         stats = {"total_users": 0, "total_tickets": 0, "open_tickets": 0, "resolved_tickets": 0, "total_messages": 0}
 
@@ -180,7 +61,7 @@ def show():
     with col_left:
         st.markdown("<div class='section-title'>💬 Recent Conversations</div>", unsafe_allow_html=True)
         try:
-            sessions = requests.get(f"{API_URL}/sessions/{user['id']}").json()
+            sessions = requests.get(f"{API_URL}/sessions/{user['id']}", headers=_headers()).json()
         except:
             sessions = []
 
@@ -204,7 +85,7 @@ def show():
                 if st.button("Open", key=f"open_{s['id']}"):
                     st.session_state.screen = "chat"
                     st.session_state.session_id = s["id"]
-                    msgs = requests.get(f"{API_URL}/messages/{s['id']}").json()
+                    msgs = requests.get(f"{API_URL}/messages/{s['id']}", headers=_headers()).json()
                     st.session_state.messages = [{"role": m["role"], "content": m["content"]} for m in msgs]
                     st.rerun()
 

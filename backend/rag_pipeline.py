@@ -30,11 +30,21 @@ def load_vectorstore() -> FAISS:
     global _vectorstore_cache
     if _vectorstore_cache is None:
         print("Loading FAISS index (first time only)...")
-        _vectorstore_cache = FAISS.load_local(
-            FAISS_INDEX_PATH,
-            get_embeddings(),
-            allow_dangerous_deserialization=True
-        )
+        try:
+            # allow_dangerous_deserialization=True is safe here because the
+            # FAISS index is generated internally by this app (rebuild_index.py)
+            # and never loaded from untrusted external sources.
+            _vectorstore_cache = FAISS.load_local(
+                FAISS_INDEX_PATH,
+                get_embeddings(),
+                allow_dangerous_deserialization=True
+            )
+        except Exception as e:
+            print(f"FAISS load error: {e}")
+            raise RuntimeError(
+                f"Failed to load FAISS index from '{FAISS_INDEX_PATH}'. "
+                f"Run 'python rebuild_index.py' to rebuild it. Error: {e}"
+            )
     return _vectorstore_cache
 
 def get_llm():
@@ -132,13 +142,18 @@ def ingest_pdf(pdf_path: str):
     embeddings = get_embeddings()
 
     if os.path.exists(FAISS_INDEX_PATH):
-        existing = FAISS.load_local(
-            FAISS_INDEX_PATH,
-            embeddings,
-            allow_dangerous_deserialization=True
-        )
-        existing.add_documents(chunks)
-        existing.save_local(FAISS_INDEX_PATH)
+        try:
+            existing = FAISS.load_local(
+                FAISS_INDEX_PATH,
+                embeddings,
+                allow_dangerous_deserialization=True
+            )
+            existing.add_documents(chunks)
+            existing.save_local(FAISS_INDEX_PATH)
+        except Exception as e:
+            print(f"Existing index corrupted, rebuilding from scratch: {e}")
+            vectorstore = FAISS.from_documents(chunks, embeddings)
+            vectorstore.save_local(FAISS_INDEX_PATH)
         # Reset cache so new docs are picked up
         global _vectorstore_cache
         _vectorstore_cache = None
@@ -153,9 +168,11 @@ def ingest_pdf(pdf_path: str):
 # ── Answer functions ──────────────────────────────────────────────
 def get_answer(question: str, language: str = "auto") -> str:
     try:
+        import html as _html
         final_prompt = prepare_prompt(question, language)
         result = get_llm().invoke(final_prompt)
-        return result.content if hasattr(result, 'content') else str(result)
+        content = result.content if hasattr(result, 'content') else str(result)
+        return _html.unescape(content)
     except Exception as e:
         print(f"Error in get_answer: {str(e)}")
         import traceback
@@ -164,9 +181,11 @@ def get_answer(question: str, language: str = "auto") -> str:
 
 def get_answer_stream(question: str, language: str = "auto"):
     try:
+        import html as _html
         final_prompt = prepare_prompt(question, language)
         for token in get_llm().stream(final_prompt):
-            yield token.content if hasattr(token, 'content') else str(token)
+            content = token.content if hasattr(token, 'content') else str(token)
+            yield _html.unescape(content)
     except Exception as e:
         print(f"Error in get_answer_stream: {str(e)}")
         import traceback

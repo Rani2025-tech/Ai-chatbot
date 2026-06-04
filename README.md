@@ -2,30 +2,40 @@
 
 An intelligent RAG-based chatbot that answers student queries about NIST University Berhampur using university documents. Supports English, Hindi, and Odia languages.
 
-## 🚀 Demo
-![Helpdesk Demo](docs/architecture.png)
+## 📸 Screenshots
+
+| Login | Chat | Admin Dashboard |
+|-------|------|-----------------|
+| ![Login](docs/screenshots/login.png) | ![Chat](docs/screenshots/chat.png) | ![Admin](docs/screenshots/admin.png) |
+
+> Add screenshots by running the app, taking screenshots, and saving them to `docs/screenshots/`.
+
+## 🏗️ Architecture
+```
+Student Question → Streamlit UI → FastAPI → RAG Pipeline → FAISS Search → Groq LLM → Answer
+```
+![Architecture](docs/architecture.png)
 
 ## 🛠️ Tech Stack
-- **LLM** — Ollama (llama3.2:1b) — runs fully offline
+- **LLM** — Groq (llama-3.3-70b-versatile)
 - **RAG Framework** — LangChain
 - **Vector Database** — FAISS
 - **Embeddings** — HuggingFace (all-MiniLM-L6-v2)
 - **Backend** — FastAPI + Uvicorn
 - **Frontend** — Streamlit
+- **Database** — SQLite
+- **Auth** — JWT + bcrypt
 - **Language Detection** — langdetect
 
 ## 💡 Features
 - Ask questions about admissions, fees, hostel, placements, exams
 - Upload any university PDF and get instant answers
-- Multilingual support — English, Hindi, Odia
-- Auto language detection
-- REST API backend with Swagger docs at /docs
-- Fully offline — no API keys needed
-
-## 🏗️ Architecture
-```
-Student Question → Streamlit UI → FastAPI → RAG Pipeline → FAISS Search → Ollama LLM → Answer
-```
+- Multilingual support — English, Hindi, Odia with auto language detection
+- JWT-based login/signup with role-based access (admin vs student)
+- Admin panel — manage tickets, view stats, upload documents
+- Support ticket system
+- Streaming LLM responses
+- REST API backend with Swagger docs at `/docs`
 
 ## ⚙️ How to Run
 
@@ -46,19 +56,20 @@ rag_env\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Install and run Ollama
-Download Ollama from https://ollama.com
-```bash
-ollama pull llama3.2:1b
-ollama serve
+### 4. Create .env file
+```env
+GROQ_API_KEY=your_groq_api_key_here
+JWT_SECRET=your_random_secret_here
+ADMIN_PASSWORD=your_admin_password_here
+FAISS_INDEX_PATH=faiss_index/
+DATA_PATH=data/
 ```
 
-### 5. Create .env file
-```env
-OLLAMA_MODEL=llama3.2:1b
-OLLAMA_BASE_URL=http://localhost:11434
-DATA_PATH=data/
-FAISS_INDEX_PATH=faiss_index/
+Get a free Groq API key at https://console.groq.com
+
+### 5. Build FAISS index
+```bash
+python rebuild_index.py
 ```
 
 ### 6. Start FastAPI backend
@@ -83,47 +94,38 @@ ai-university-helpdesk/
 │   ├── main.py          # FastAPI app
 │   ├── routes.py        # API endpoints
 │   ├── rag_pipeline.py  # RAG logic
+│   ├── database.py      # SQLite models & queries
 │   └── utils.py         # Helper functions
 ├── frontend/
-│   └── app.py           # Streamlit UI
+│   ├── app.py           # Streamlit entry point
+│   ├── login.py         # Login/signup screen
+│   ├── chat.py          # Chat interface
+│   ├── dashboard.py     # Student dashboard
+│   ├── admin.py         # Admin panel
+│   └── style.css        # UI styles
 ├── data/                # University PDFs
-├── docs/                # Architecture diagram
-├── .env                 # Config (not uploaded)
-├── requirements.txt
-└── README.md
+├── docs/                # Architecture diagram & screenshots
+├── .env                 # Config (not committed)
+├── .env.example         # Example config
+├── rebuild_index.py     # Script to rebuild FAISS index
+└── requirements.txt
 ```
 
 ## 🎯 API Endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /api/health | Check server status |
-| POST | /api/upload | Upload university PDF |
-| POST | /api/ask | Ask a question |
+| POST | /api/auth/signup | Register a new user |
+| POST | /api/auth/login | Login and get JWT token |
+| POST | /api/ask-stream | Ask a question (streaming) |
+| POST | /api/ask-sync | Ask a question (sync) |
+| POST | /api/upload | Upload university PDF (admin) |
 | GET | /api/documents | List uploaded PDFs |
+| GET | /api/sessions/{user_id} | Get chat sessions |
+| GET | /api/messages/{session_id} | Get chat messages |
+| POST | /api/tickets | Raise a support ticket |
+| GET | /api/tickets | Get all tickets (admin) |
+| GET | /api/stats | Get usage statistics |
 
 ## 👨‍💻 Built By
 RANI NAYAK — NIST University Berhampur
-```
-
-Press `Ctrl + S`.
-
----
-
-**Step 3 — update `requirements.txt`** — open it and replace with:
-```
-fastapi
-uvicorn
-streamlit
-langchain
-langchain-community
-langchain-ollama
-langchain-huggingface
-faiss-cpu
-pypdf
-python-dotenv
-requests
-python-multipart
-sentence-transformers
-langdetect
-reportlab
-beautifulsoup4
