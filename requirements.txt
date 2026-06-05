@@ -4,7 +4,6 @@ streamlit
 langchain
 langchain-community
 langchain-groq
-langchain-huggingface
 langchain-text-splitters
 langchain-core
 faiss-cpu
@@ -12,9 +11,11 @@ pypdf
 python-dotenv
 requests
 python-multipart
-sentence-transformers
+fastembed
 langdetect
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==4.0.1
+psycopg2-binary
+reportlab
 

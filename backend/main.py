@@ -23,13 +23,15 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# allow_origins=["*"] permits all domains to call this API.
-# Acceptable for a demo/dev environment. In production, replace "*"
-# with your specific frontend domain e.g. ["https://yourdomain.com"]
+# FRONTEND_URL should be set to your Streamlit service URL in production.
+# Falls back to "*" for local development only.
+_frontend_url = os.getenv("FRONTEND_URL", "*")
+_origins = [_frontend_url] if _frontend_url != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=_frontend_url != "*",
     allow_methods=["*"],
     allow_headers=["*"],
 )

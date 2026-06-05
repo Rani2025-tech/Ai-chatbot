@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
@@ -144,8 +145,6 @@ def ask_question_stream(request: QuestionRequest, credentials: HTTPAuthorization
         return StreamingResponse(get_answer_stream(request.question, request.language), media_type="text/plain")
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
-
-import time
 
 @router.post("/ask-sync", response_model=AnswerResponse)
 def ask_question_sync(request: QuestionRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):

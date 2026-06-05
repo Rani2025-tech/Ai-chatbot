@@ -13,3 +13,4 @@ helpdesk.db
 *.log
 .vscode/
 .idea/
+# faiss_index/ and data/ are intentionally NOT ignored — required for deployment
