@@ -1,6 +1,10 @@
 import streamlit as st
 import os
 
+# When deployed as single service, backend runs on localhost:8000
+if not os.getenv("API_URL"):
+    os.environ["API_URL"] = "http://localhost:8000/api"
+
 st.set_page_config(
     page_title="NIST AI Helpdesk",
     page_icon="🎓",

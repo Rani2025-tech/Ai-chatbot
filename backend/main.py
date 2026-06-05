@@ -23,10 +23,10 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# FRONTEND_URL should be set to your Streamlit service URL in production.
-# Falls back to "*" for local development only.
+# In single-service mode, frontend and backend are on the same host.
+# FRONTEND_URL can be set to restrict origins in production.
 _frontend_url = os.getenv("FRONTEND_URL", "*")
-_origins = [_frontend_url] if _frontend_url != "*" else ["*"]
+_origins = [_frontend_url, "http://localhost:8501"] if _frontend_url != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
