@@ -1,6 +1,12 @@
 # 🎓 AI-Powered University Helpdesk — NIST University
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online-brightgreen?style=for-the-badge&logo=render)](https://ai-chatbot-si7w.onrender.com)
+
 An intelligent RAG-based chatbot that answers student queries about NIST University Berhampur using university documents. Supports English, Hindi, and Odia languages.
+
+🌐 **Live Demo:** https://ai-chatbot-si7w.onrender.com
+
+> ⚠️ Hosted on Render free tier — first load may take 20-30 seconds if the service has spun down.
 
 ## 📸 Screenshots
 
@@ -20,7 +26,7 @@ Student Question → Streamlit UI → FastAPI → RAG Pipeline → FAISS Search 
 - **LLM** — Groq (llama-3.3-70b-versatile)
 - **RAG Framework** — LangChain
 - **Vector Database** — FAISS
-- **Embeddings** — HuggingFace (all-MiniLM-L6-v2)
+- **Embeddings** — FastEmbed (BAAI/bge-small-en-v1.5, ONNX)
 - **Backend** — FastAPI + Uvicorn
 - **Frontend** — Streamlit
 - **Database** — SQLite
@@ -127,5 +133,5 @@ ai-university-helpdesk/
 | GET | /api/tickets | Get all tickets (admin) |
 | GET | /api/stats | Get usage statistics |
 
-## 👨‍💻 Built By
+## 👨💻 Built By
 RANI NAYAK — NIST University Berhampur
