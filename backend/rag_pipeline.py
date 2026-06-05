@@ -7,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 
 load_dotenv()
 
@@ -23,7 +23,8 @@ def get_embeddings():
     global _embeddings_cache
     if _embeddings_cache is None:
         print("Loading embeddings model (first time only)...")
-        _embeddings_cache = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        # FastEmbedEmbeddings uses ONNX runtime (~50MB RAM vs ~400MB for PyTorch)
+        _embeddings_cache = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
     return _embeddings_cache
 
 def load_vectorstore() -> FAISS:
@@ -139,6 +140,10 @@ def ingest_pdf(pdf_path: str):
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks   = splitter.split_documents(docs)
 
+    if not chunks:
+        print(f"WARNING: No text extracted from {pdf_path} — skipping (likely a scanned/image PDF).")
+        return 0
+
     embeddings = get_embeddings()
 
     if os.path.exists(FAISS_INDEX_PATH):
@@ -150,6 +155,7 @@ def ingest_pdf(pdf_path: str):
             )
             existing.add_documents(chunks)
             existing.save_local(FAISS_INDEX_PATH)
+            print(f"Merged {len(chunks)} chunks into existing FAISS index")
         except Exception as e:
             print(f"Existing index corrupted, rebuilding from scratch: {e}")
             vectorstore = FAISS.from_documents(chunks, embeddings)
@@ -157,7 +163,6 @@ def ingest_pdf(pdf_path: str):
         # Reset cache so new docs are picked up
         global _vectorstore_cache
         _vectorstore_cache = None
-        print(f"Merged {len(chunks)} chunks into existing FAISS index")
     else:
         vectorstore = FAISS.from_documents(chunks, embeddings)
         vectorstore.save_local(FAISS_INDEX_PATH)
