@@ -226,26 +226,14 @@ def _render_message(index, msg, user):
     </div>
     """, unsafe_allow_html=True)
 
-    feedback_key = f"feedback_{index}"
-    current_fb = st.session_state.get(feedback_key)
-    col_up, col_down, col_ticket, _ = st.columns([1, 1, 2, 6])
-    with col_up:
-        cls = "btn--feedback-active" if current_fb == "up" else "btn--feedback"
-        st.markdown(f"<div class='{cls}'>", unsafe_allow_html=True)
-        if st.button("👍", key=f"up_{index}"):
-            st.session_state[feedback_key] = "up"
-        st.markdown("</div>", unsafe_allow_html=True)
-    with col_down:
-        cls = "btn--feedback-active" if current_fb == "down" else "btn--feedback"
-        st.markdown(f"<div class='{cls}'>", unsafe_allow_html=True)
-        if st.button("👎", key=f"down_{index}"):
-            st.session_state[feedback_key] = "down"
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:-0.8rem;margin-left:2.5rem;margin-bottom:0.5rem;'>", unsafe_allow_html=True)
+    col_ticket, _ = st.columns([1, 9])
     with col_ticket:
         st.markdown("<div class='btn--ticket'>", unsafe_allow_html=True)
         if st.button("Raise Ticket", key=f"ticket_{index}"):
             _raise_ticket(msg["content"], user)
         st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _export_txt(messages: list) -> bytes:
@@ -403,18 +391,94 @@ def show():
     if not st.session_state.is_loading:
         prompt = st.chat_input("Type your message...")
 
-        # Inject mic button before send button via JS DOM manipulation
+        # Inject mic button + sidebar toggle button via JS
         components.html("""
         <script>
-        function injectMic() {
-            const chatInput = window.parent.document.querySelector('.stChatInput');
-            if (!chatInput || window.parent.document.getElementById('micBtn')) return;
+        function injectButtons() {
+            const doc = window.parent.document;
 
-            const btn = window.parent.document.createElement('button');
-            btn.id = 'micBtn';
-            btn.innerHTML = '&#127908;';
-            btn.title = 'Click to speak';
-            btn.style.cssText = `
+            // ── Sidebar Toggle Button (hamburger, fixed top-left) ──────────
+            if (!doc.getElementById('sidebarToggleBtn')) {
+                const btn = doc.createElement('button');
+                btn.id = 'sidebarToggleBtn';
+                btn.innerHTML = '&#9776;';
+                btn.title = 'Toggle Sidebar';
+                btn.style.cssText = `
+                    position: fixed;
+                    top: 14px;
+                    left: 14px;
+                    z-index: 99999;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 10px;
+                    border: none;
+                    background: #1E2A6E;
+                    color: #ffffff;
+                    font-size: 20px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    transition: background 0.2s;
+                `;
+                btn.onmouseover = () => btn.style.background = '#3d52c4';
+                btn.onmouseout  = () => btn.style.background = '#1E2A6E';
+                btn.onclick = () => {
+                    const collapseBtn = doc.querySelector('[data-testid="collapsedControl"] button') ||
+                                       doc.querySelector('[data-testid="collapsedControl"]') ||
+                                       doc.querySelector('[data-testid="stSidebarCollapseButton"] button');
+                    if (collapseBtn) collapseBtn.click();
+                };
+                doc.body.appendChild(btn);
+            }
+
+            // ── Close button inside sidebar ─────────────────────────
+            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+            if (sidebar && !doc.getElementById('sidebarCloseBtn')) {
+                const closeBtn = doc.createElement('button');
+                closeBtn.id = 'sidebarCloseBtn';
+                closeBtn.innerHTML = '&#10005;';
+                closeBtn.title = 'Close Sidebar';
+                closeBtn.style.cssText = `
+                    position: absolute;
+                    top: 12px;
+                    right: 12px;
+                    z-index: 99999;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    background: rgba(255,255,255,0.1);
+                    color: #ffffff;
+                    font-size: 14px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.2s;
+                `;
+                closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.25)';
+                closeBtn.onmouseout  = () => closeBtn.style.background = 'rgba(255,255,255,0.1)';
+                closeBtn.onclick = () => {
+                    const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+                                       doc.querySelector('[data-testid="collapsedControl"] button') ||
+                                       doc.querySelector('[data-testid="collapsedControl"]');
+                    if (collapseBtn) collapseBtn.click();
+                };
+                sidebar.style.position = 'relative';
+                sidebar.appendChild(closeBtn);
+            }
+
+            // ── Mic Button ───────────────────────────────────
+            const chatInput = doc.querySelector('.stChatInput');
+            if (!chatInput || doc.getElementById('micBtn')) return;
+
+            const micBtn = doc.createElement('button');
+            micBtn.id = 'micBtn';
+            micBtn.innerHTML = '&#127908;';
+            micBtn.title = 'Click to speak';
+            micBtn.style.cssText = `
                 width:38px;height:38px;min-width:38px;border-radius:50%;border:none;
                 background:linear-gradient(135deg,#93c5fd,#60a5fa);
                 color:white;font-size:16px;cursor:pointer;
@@ -427,34 +491,27 @@ def show():
             let recognition = null;
             let listening = false;
 
-            btn.onclick = function() {
+            micBtn.onclick = function() {
                 if (!('webkitSpeechRecognition' in window.parent) && !('SpeechRecognition' in window.parent)) {
                     alert('Speech recognition not supported. Use Chrome or Edge.');
                     return;
                 }
-                if (listening) {
-                    recognition.stop();
-                    return;
-                }
+                if (listening) { recognition.stop(); return; }
                 const SR = window.parent.SpeechRecognition || window.parent.webkitSpeechRecognition;
                 recognition = new SR();
                 recognition.lang = 'en-IN';
                 recognition.interimResults = true;
                 recognition.continuous = false;
-
                 recognition.onstart = () => {
                     listening = true;
-                    btn.style.background = 'linear-gradient(135deg,#e53e3e,#c53030)';
-                    btn.innerHTML = '&#9209;';
-                    btn.title = 'Stop listening';
+                    micBtn.style.background = 'linear-gradient(135deg,#e53e3e,#c53030)';
+                    micBtn.innerHTML = '&#9209;';
+                    micBtn.title = 'Stop listening';
                 };
-
                 recognition.onresult = (e) => {
                     let transcript = '';
-                    for (let i = 0; i < e.results.length; i++) {
-                        transcript += e.results[i][0].transcript;
-                    }
-                    const textarea = window.parent.document.querySelector('.stChatInput textarea');
+                    for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+                    const textarea = doc.querySelector('.stChatInput textarea');
                     if (textarea) {
                         const setter = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, 'value').set;
                         setter.call(textarea, transcript);
@@ -462,32 +519,28 @@ def show():
                         textarea.focus();
                     }
                 };
-
                 recognition.onend = () => {
                     listening = false;
-                    btn.style.background = 'linear-gradient(135deg,#93c5fd,#60a5fa)';
-                    btn.innerHTML = '&#127908;';
-                    btn.title = 'Click to speak';
+                    micBtn.style.background = 'linear-gradient(135deg,#93c5fd,#60a5fa)';
+                    micBtn.innerHTML = '&#127908;';
+                    micBtn.title = 'Click to speak';
                 };
-
                 recognition.onerror = () => {
                     listening = false;
-                    btn.style.background = 'linear-gradient(135deg,#93c5fd,#60a5fa)';
-                    btn.innerHTML = '&#127908;';
+                    micBtn.style.background = 'linear-gradient(135deg,#93c5fd,#60a5fa)';
+                    micBtn.innerHTML = '&#127908;';
                 };
-
                 recognition.start();
             };
 
             const sendBtn = chatInput.querySelector('button');
-            if (sendBtn && sendBtn.parentNode) {
-                sendBtn.parentNode.insertBefore(btn, sendBtn);
-            }
+            if (sendBtn && sendBtn.parentNode) sendBtn.parentNode.insertBefore(micBtn, sendBtn);
         }
 
         const interval = setInterval(() => {
-            injectMic();
-            if (window.parent.document.getElementById('micBtn')) clearInterval(interval);
+            injectButtons();
+            if (window.parent.document.getElementById('micBtn') &&
+                window.parent.document.getElementById('sidebarToggleBtn')) clearInterval(interval);
         }, 300);
         </script>
         """, height=0)

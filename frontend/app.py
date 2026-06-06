@@ -9,7 +9,7 @@ st.set_page_config(
     page_title="NIST AI Helpdesk",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 import sys
@@ -40,7 +40,7 @@ HIDE_SIDEBAR = "<style>section[data-testid='stSidebar']{display:none !important;
 LOGIN_STYLES = """
 <style>
 .stApp { background: var(--color-bg-page) !important; }
-.block-container { padding: 4rem 1rem !important; max-width: 480px !important; margin: 0 auto !important; }
+.block-container { padding: 1.5rem 1rem !important; max-width: 480px !important; margin: 0 auto !important; }
 </style>
 """
 
